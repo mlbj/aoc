@@ -48,4 +48,6 @@ int main(){
 
     // output
     std::cout << "sum (part b) = " << sum << std::endl;
+
+    return 0;
 }
