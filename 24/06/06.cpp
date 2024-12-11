@@ -232,8 +232,6 @@
         // cast grid object
         Grid grid(input);
        
-        std::vector<bool> placed;
-        placed.resize(grid.rows*grid.cols, false);
         int how_many=0;
         Grid cgrid = Grid(grid); 
 
@@ -245,24 +243,48 @@
                     continue;
                 }
 
-                // skip if the cell was already placed
-                if (placed[i*grid.cols + j]){
-                    continue;
-                } 
+                // create this bool vector to keep track of the 
+                // placed position. we will use it to see if 
+                // there is a loop.
+                std::vector<bool> placed;
+                placed.resize(4*grid.rows*grid.cols, false);
 
-                // place the block and count the find a loop
+                // place the block start moving forward
                 cgrid(i,j) = '#';
-                int counter = 0;
                 while(cgrid.forward()){
-                    if (counter>4*grid.rows*grid.cols){
-                        placed[i*grid.cols + j] = true;
+                    // decode direction index 
+                    char direction = cgrid(cgrid.row, cgrid.col);
+                    int direction_index;
+                    switch (direction){
+                        case '<':
+                            direction_index = 0;
+                            break;
+                        case '^':
+                            direction_index = 1;
+                            break;
+                        case '>':
+                            direction_index = 2;
+                            break;
+                        case 'v':
+                            direction_index = 3;
+                            break;
+                    }
+
+                    // place the position
+                    int hash = (cgrid.row*grid.cols + cgrid.col)*4 + direction_index;
+                    
+                    // check if the position was already placed
+                    // if it was, then we have a loop, otherwise
+                    // we mark it as placed.
+                    if (placed[hash] == false){
+                        placed[hash] = true;
+                    }else{
                         how_many++;
                         break;
-                    }else{
-                        counter++;
                     }
                 }
 
+                // reset the grid
                 cgrid = Grid(grid);
             }
         }
