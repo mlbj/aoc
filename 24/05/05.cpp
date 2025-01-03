@@ -4,6 +4,8 @@
 #include <fstream>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 // key -> value1, value2, ... 
 // valuei must appear after the key 
@@ -61,19 +63,38 @@ void parse(const std::string& filename){
     }
 }
 
+// complement of a vector of numbers for 0 to n-1, selected with no repetition
+std::vector<int> get_complement(const std::vector<int>& input, int n){
+    // fill full sequence with numbers 0, 1, ..., n-1
+    std::vector<int> full_sequence(n);
+    std::iota(full_sequence.begin(), full_sequence.end(), 0);
+
+    // sort input vector
+    std::vector<int> sorted_input = input;
+    std::sort(sorted_input.begin(), sorted_input.end());
+
+    // get complement with std::set_difference
+    std::vector<int> complement;
+    std::set_difference(
+        full_sequence.begin(), 
+        full_sequence.end(),
+        sorted_input.begin(),
+        sorted_input.end(),
+        std::back_inserter(complement)
+    );
+
+    return complement;
+}
+
 
 int main(){
     std::string filename = "input.txt";
     parse(filename);
     
-    // sanity debug 
-    // std::cout << entries.size() << std::endl;
-    // std::cout << entries[0].size() << std::endl;
-    
-    //// part a. 
+    //// part a
     int sum = 0;
 
-    std::vector<int> valid_entries;
+    std::vector<int> valid_entries_idx;
     for (int i=0; i<entries.size(); i++){
         std::vector<int> entry = entries[i];
         bool valid_entry = true;
@@ -101,26 +122,73 @@ int main(){
 
         // if correct, add to the correct list 
         if (valid_entry){
-            valid_entries.push_back(i);
+            valid_entries_idx.push_back(i);
         }
 
     }   
 
     // get middle elements 
-    for (int i=0; i<valid_entries.size(); i++){
-        const std::vector<int> current_entry = entries[valid_entries[i]];
+    for (int i=0; i<valid_entries_idx.size(); i++){
+        const std::vector<int> current_entry = entries[valid_entries_idx[i]];
         sum = sum + current_entry[(int) current_entry.size()/2]; 
     }
 
     // print output 
-    std::cout << sum << std::endl;
+    std::cout << "sum (part a) = " << sum << std::endl;
 
 
-    //// part b. 
-    std::vector<int> incorrect order;
+    //// part b  
+    std::vector<int> invalid_entries_idx = get_complement(valid_entries_idx, entries.size());
 
-    // at main break: break loop, swap and start over.
+    for (int i=0; i<invalid_entries_idx.size(); i++){ 
+        std::vector<int> entry = entries[invalid_entries_idx[i]];
 
+        // we will pretend that the entry is valid. however we know that it is not
+        // the idea is that we will break and swap the positions k 
+        // and j when we find a rule breaking point. at that point, we will decrement 
+        // i and start over.
+        bool valid_entry = true;
+        for (int j=entry.size()-1; j>=0; j--){
+            
+            // check if key exists
+            if (rules.find(entry[j]) != rules.end()){
+                // comparison position 
+                int k = j-1;
+                while (k>=0 && valid_entry){
+                    for (int value : rules[entry[j]]){
+                        if (entry[k]==value){
+                            // swap i and j elements
+                            int swap = entry[k];
+                            entries[invalid_entries_idx[i]][k] = entries[invalid_entries_idx[i]][j];
+                            entries[invalid_entries_idx[i]][j] = swap; 
+
+                            // decrement i idx
+                            i--;
+
+                            // force the loop to break 
+                            valid_entry = false;
+                            break;
+                        }
+                    }
+                    k--;
+                }      
+            }
+
+            if (!valid_entry){
+                break;
+            }
+        }
+    }   
+
+    // get middle elements of invalid entries
+    sum = 0;
+    for (int i=0; i<invalid_entries_idx.size(); i++){
+        const std::vector<int> current_entry = entries[invalid_entries_idx[i]];
+        sum = sum + current_entry[(int) current_entry.size()/2]; 
+    }
+
+    // print output 
+    std::cout << "sum (part b) = " << sum << std::endl;
     
     return 0;
 }
